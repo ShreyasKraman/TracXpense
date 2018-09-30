@@ -3,6 +3,4 @@ jdk: oraclejdk8
 services: mysql
 before_install:
   - mysql -e 'CREATE DATABASE user_cloud;'
-install:
-  - ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
