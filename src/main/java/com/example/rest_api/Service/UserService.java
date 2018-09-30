@@ -51,6 +51,44 @@ public class UserService {
 
     }
 
+    public boolean updateUser(String []userCredentials){
+
+        String username = userCredentials[0];
+
+        String password = userCredentials[1];
+
+        try{
+
+            String hashedPassword = hash(password);
+            
+            User user = new User(username,password);
+            User existing_user = userDao.getOne(username);
+
+            existing_user.setPassword(hashedPassword);
+
+            return true;
+        }catch(Exception e){
+            return false;
+        }
+    }
+
+    public boolean deleteUser(String []userCredentials){
+
+        try{
+
+            String username = userCredentials[0];
+
+            userDao.deleteById(username);
+
+            return true;
+
+        }catch(Exception e){
+            return false;
+        }
+
+    }
+
+
     public String hash(String password){
         if(password.isEmpty() || password == null){
             return null;
