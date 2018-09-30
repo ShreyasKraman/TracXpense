@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@RequestMapping(value="/")
 public class ActionController {
 
     @Autowired
@@ -42,7 +43,7 @@ public class ActionController {
 
     }
 
-    @RequestMapping(value="/register",method=RequestMethod.POST)
+    @RequestMapping(value="/user/register",method=RequestMethod.POST)
     public Map<String,Object> register(@RequestHeader(value="Authorization")String auth){
 
         String []userCredentials = getUserCredentials(auth);
