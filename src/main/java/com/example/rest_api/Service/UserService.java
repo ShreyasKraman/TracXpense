@@ -2,13 +2,15 @@ package com.example.rest_api.Service;
 
 import com.example.rest_api.Dao.UserDao;
 import com.example.rest_api.Entities.User;
+import org.apache.tomcat.util.codec.binary.Base64;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Random;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Service
 
@@ -17,37 +19,69 @@ public class UserService {
     @Autowired
     UserDao userDao;
 
-    public boolean authUser(String []userCredentials){
+    @Autowired
+    ResponseService responseService;
 
-        String username = userCredentials[0];
+    @Autowired
+    ValidationService validateService;
 
-        String password = userCredentials[1];
+    public Map<String,Object> authUser(String auth){
 
-        Optional<User> optionalUser = userDao.findById(username);
+        String []userCredentials = getUserCredentials(auth);
+
+        if(userCredentials.length == 0){
+            return responseService.generateResponse(HttpStatus.UNAUTHORIZED, "You are not logged in");
+        }
+
+        if(!validateService.validateUsername(userCredentials[0])){
+            return responseService.generateResponse(HttpStatus.BAD_GATEWAY,"Invalid Email Address");
+        }
 
         try {
-            User user = optionalUser.get();
-            return checkHash(password,user.password);
+            if(authUser(userCredentials)){
+                DateFormat df = new SimpleDateFormat("HH:mm");
+                Date date = new Date();
+                return responseService.generateResponse(HttpStatus.OK,"Current Time: "+df.format(date));
+            }
         }catch(NoSuchElementException e){
-            return false;
+            return responseService.generateResponse(HttpStatus.UNAUTHORIZED,"No account found. Please register");
         }
+
+        return responseService.generateResponse(HttpStatus.UNAUTHORIZED,"No account found. Please register");
     }
 
-    public boolean createUser(String []userCredentials){
-        String username = userCredentials[0];
+    public Map<String,Object> createUser(String auth){
+        String []userCredentials = getUserCredentials(auth);
 
-        String password = userCredentials[1];
-
-        try {
-            String hashedPassword = hash(password);
-
-            User user = new User(username, hashedPassword);
-
-            userDao.save(user);
-            return true;
+        if(userCredentials.length == 0){
+            return responseService.generateResponse(HttpStatus.UNAUTHORIZED, "Please enter username and password");
         }
-        catch(Exception e){
-            return false;
+
+        if(!validateService.validateUsername(userCredentials[0])){
+            return responseService.generateResponse(HttpStatus.BAD_REQUEST,"Error:Invalid Email Address");
+        }
+
+
+
+        if(authUser(userCredentials)){
+            return responseService.generateResponse(HttpStatus.BAD_REQUEST,"Account already exists");
+        }else{
+            try {
+
+                String username = userCredentials[0];
+                String password = userCredentials[1];
+
+                String hashedPassword = hash(password);
+
+                User user = new User(username, hashedPassword);
+
+                userDao.save(user);
+
+                return responseService.generateResponse(HttpStatus.OK,"Account created successfully");
+            }
+            catch(Exception e){
+                return responseService.generateResponse(HttpStatus.FORBIDDEN,"Account creation failed");
+            }
         }
 
     }
@@ -89,6 +123,44 @@ public class UserService {
 
     }
 
+    protected List<String> getTransactionsIds(String[] userCredentials){
+
+        String username = userCredentials[0];
+        String password = userCredentials[1];
+
+        Optional<User> optionalUser = userDao.findById(username);
+        try{
+
+            User user = optionalUser.get();
+            if(checkHash(password,user.password)){
+
+                return user.getTransaction_id();
+
+            }
+
+        }catch(Exception e){
+            return null;
+        }
+        return null;
+    }
+
+    protected boolean authUser(String []userCredentials){
+
+        String username = userCredentials[0];
+        String password = userCredentials[1];
+
+        Optional<User> optionalUser = userDao.findById(username);
+
+        try{
+            User user = optionalUser.get();
+            return checkHash(password,user.password);
+
+        }catch (Exception e){
+            return false;
+        }
+
+    }
+
 
     public String hash(String password){
         if(password.isEmpty() || password == null){
@@ -108,6 +180,15 @@ public class UserService {
         }
 
         return BCrypt.checkpw(password,hash);
+    }
+
+    public String[] getUserCredentials(String auth){
+        //Authorization: Basic (Base64)Encoded
+        String []authParts = auth.split(" ");
+
+        byte[] decode = Base64.decodeBase64(authParts[1]);
+
+        return new String(decode).split(":");
     }
 
 

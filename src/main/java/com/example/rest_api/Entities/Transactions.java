@@ -1,9 +1,6 @@
 package com.example.rest_api.Entities;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table
@@ -12,7 +9,7 @@ public class Transactions {
     @Id
     private String transaction_id;
 
-    @OneToOne
+    @ManyToOne
     private User user;
 
     private String description;
