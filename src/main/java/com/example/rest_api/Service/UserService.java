@@ -80,6 +80,7 @@ public class UserService {
                 return responseService.generateResponse(HttpStatus.OK,"Account created successfully");
             }
             catch(Exception e){
+                System.out.print(e.getMessage());
                 return responseService.generateResponse(HttpStatus.FORBIDDEN,"Account creation failed");
             }
         }
@@ -123,27 +124,6 @@ public class UserService {
 
     }
 
-    protected List<String> getTransactionsIds(String[] userCredentials){
-
-        String username = userCredentials[0];
-        String password = userCredentials[1];
-
-        Optional<User> optionalUser = userDao.findById(username);
-        try{
-
-            User user = optionalUser.get();
-            if(checkHash(password,user.password)){
-
-                return user.getTransaction_id();
-
-            }
-
-        }catch(Exception e){
-            return null;
-        }
-        return null;
-    }
-
     protected boolean authUser(String []userCredentials){
 
         String username = userCredentials[0];
@@ -162,7 +142,7 @@ public class UserService {
     }
 
 
-    public String hash(String password){
+    protected String hash(String password){
         if(password.isEmpty() || password == null){
             return null;
         }
@@ -174,7 +154,7 @@ public class UserService {
         return BCrypt.hashpw(password,BCrypt.gensalt(log_rounds));
     }
 
-    public boolean checkHash(String password,String hash){
+    protected boolean checkHash(String password,String hash){
         if(password.isEmpty() || password == null){
             return false;
         }
@@ -182,7 +162,7 @@ public class UserService {
         return BCrypt.checkpw(password,hash);
     }
 
-    public String[] getUserCredentials(String auth){
+    protected String[] getUserCredentials(String auth){
         //Authorization: Basic (Base64)Encoded
         String []authParts = auth.split(" ");
 

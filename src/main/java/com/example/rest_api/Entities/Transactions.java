@@ -1,5 +1,7 @@
 package com.example.rest_api.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 
 @Entity
@@ -8,22 +10,21 @@ public class Transactions {
 
     @Id
     private String transaction_id;
-
-    @ManyToOne
-    private User user;
-
     private String description;
     private String merchant;
     private String amount;
     private String date;
     private String category;
 
+    @ManyToOne
+    @JsonIgnore
+    private User user;
+
     public Transactions() {
     }
 
-    public Transactions(String transaction_id, User user, String description, String merchant, String amount, String date, String category) {
+    public Transactions(String transaction_id, String description, String merchant, String amount, String date, String category) {
         this.transaction_id = transaction_id;
-        this.user = user;
         this.description = description;
         this.merchant = merchant;
         this.amount = amount;
@@ -37,14 +38,6 @@ public class Transactions {
 
     public void setTransaction_id(String transaction_id) {
         this.transaction_id = transaction_id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
     }
 
     public String getDescription() {
@@ -85,5 +78,13 @@ public class Transactions {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

@@ -1,9 +1,7 @@
 package com.example.rest_api.Entities;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -14,16 +12,18 @@ public class User {
     public String username;
     public String password;
 
-    @OneToMany(mappedBy = "Transactions.user")
-    List<String> transaction_id;
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "user")
+    public List<Transactions> transactions;
+
 
     User(){
-
+        transactions = new ArrayList<>();
     }
 
     public User(String username, String password) {
         this.username = username;
         this.password = password;
+        transactions = new ArrayList<>();
     }
 
     public String getUsername() {
@@ -42,11 +42,16 @@ public class User {
         this.password = password;
     }
 
-    public List<String> getTransaction_id() {
-        return transaction_id;
+    public List<Transactions> getTransactions() {
+        return transactions;
     }
 
-    public void setTransaction_id(List<String> transaction_id) {
-        this.transaction_id = transaction_id;
+    public Transactions addTransaction(Transactions transactionValue){
+        try{
+            transactions.add(transactionValue);
+            return transactionValue;
+        }catch (Exception e){
+            return null;
+        }
     }
 }
