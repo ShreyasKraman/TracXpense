@@ -12,7 +12,7 @@ public class User {
     public String username;
     public String password;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "user")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     public List<Transactions> transactions;
 
 
