@@ -63,6 +63,12 @@ public class TransactionService {
                 while(true) {
                     String hashedId = userService.hash(id);
                     if(!ifTransactExists(hashedId)) {
+                        if(hashedId.contains("/")){
+                            hashedId = hashedId.replace("/","-");
+                        }
+                        if(hashedId.contains(".")){
+                            hashedId = hashedId.replace(".","-");
+                        }
                         transaction.setTransaction_id(hashedId);
                         break;
                     }
@@ -84,6 +90,66 @@ public class TransactionService {
         return false;
 
     }
+
+    public Transactions updateTransaction(String auth, String id, Transactions updatedTransaction){
+        String[] userCredentials = userService.getUserCredentials(auth);
+        if(userService.authUser(userCredentials)){
+            if(ifTransactExists(id)){
+                Transactions existingTransaction = transactionDao.getOne(id);
+
+                try{
+                    existingTransaction.setAmount(updatedTransaction.getAmount());
+                    existingTransaction.setCategory(updatedTransaction.getCategory());
+                    existingTransaction.setDate(updatedTransaction.getDate());
+                    existingTransaction.setDescription(updatedTransaction.getDescription());
+                    existingTransaction.setMerchant(updatedTransaction.getMerchant());
+                    transactionDao.save(existingTransaction);
+
+                    User user = userDao.getOne(userCredentials[0]);
+                    user.updateTransaction(id,updatedTransaction);
+                    userDao.save(user);
+                    return existingTransaction;
+
+                }catch (Exception e){
+                    System.out.print(e.getMessage());
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public boolean deleteTransaction(String auth,String id){
+
+        String[] userCredentials = userService.getUserCredentials(auth);
+        if(userService.authUser(userCredentials)) {
+            if (ifTransactExists(id)) {
+
+                Transactions existingTransaction = transactionDao.getOne(id);
+
+                try{
+
+                    transactionDao.delete(existingTransaction);
+
+                    User user = userDao.getOne(userCredentials[0]);
+                    user.deleteTransaction(existingTransaction);
+
+                    return true;
+
+                }catch (Exception e){
+                    System.out.print(e.getMessage());
+                    return false;
+                }
+
+            }
+
+        }
+
+
+        return false;
+    }
+
 
     public boolean ifTransactExists(String id){
 

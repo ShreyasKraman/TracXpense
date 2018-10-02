@@ -32,7 +32,7 @@ public class RestApiApplicationTests {
     @Test
     public void testLoginSuccess() throws JSONException{
 
-        HttpHeaders header = createHeaders("abcd@gmail.com","abcd1234");
+        HttpHeaders header = createHeaders("shr@gmail.com","abcd1234");
 
         HttpEntity<String> entity = new HttpEntity<String>(null,null);
 
@@ -42,7 +42,7 @@ public class RestApiApplicationTests {
 
         DateFormat df = new SimpleDateFormat("HH:mm");
         Date date = new Date();
-        String expectedString = "{\"Data\":\"You are not logged in\",\"Response Code\":\"NOT_FOUND\"}";
+        String expectedString = "{\"Data\":\"You are not logged in\",\"Response Code\":\"UNAUTHORIZED\"}";
 
         JSONAssert.assertEquals(expectedString, response.getBody(),false);
 
@@ -58,7 +58,7 @@ public class RestApiApplicationTests {
                 createUrlWithPort("/"),
                 HttpMethod.GET,entity,String.class);
 
-        String expectedString = "{\"Data\":\"No account found. Please Register\",\"Response Code\":\"NOT_FOUND\"}";
+        String expectedString = "{\"Data\":\"No account found. Please register\",\"Response Code\":\"UNAUTHORIZED\"}";
 
         JSONAssert.assertEquals(expectedString, response.getBody(),false);
     }

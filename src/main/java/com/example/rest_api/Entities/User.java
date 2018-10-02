@@ -2,6 +2,7 @@ package com.example.rest_api.Entities;
 
 import javax.persistence.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @Entity
@@ -54,4 +55,34 @@ public class User {
             return null;
         }
     }
+
+    public Transactions updateTransaction(String id, Transactions updatedTransaction){
+
+        Iterator it = transactions.iterator();
+
+        while(it.hasNext()){
+
+            Transactions transact = (Transactions)it.next();
+            if(transact.getTransaction_id().equals(id)){
+                transact.setAmount(updatedTransaction.getAmount());
+                transact.setCategory(updatedTransaction.getCategory());
+                transact.setDate(updatedTransaction.getDate());
+                transact.setDescription(updatedTransaction.getDescription());
+                transact.setMerchant(updatedTransaction.getMerchant());
+                return transact;
+            }
+        }
+
+        return null;
+    }
+
+    public void deleteTransaction(Transactions removeTransactions){
+
+        try{
+            transactions.remove(removeTransactions);
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+    }
+
 }

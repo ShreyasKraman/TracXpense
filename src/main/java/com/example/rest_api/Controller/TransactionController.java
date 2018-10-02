@@ -21,7 +21,7 @@ public class TransactionController {
     @Autowired
     ResponseService responseService;
 
-    @RequestMapping(value="/transact/", method = RequestMethod.GET)
+    @GetMapping(value="/transact/")
     public ResponseEntity getTransaction(@RequestHeader(value="Authorization", defaultValue = "No Auth")String auth){
 
         if(auth.isEmpty() || auth.equals("NoValueFound")){
@@ -37,7 +37,7 @@ public class TransactionController {
 
     }
 
-    @RequestMapping(value="/transact/create", method = RequestMethod.POST)
+    @PostMapping(value="/transact/create")
     public ResponseEntity createTransaction(@RequestHeader(value="Authorization",
             defaultValue = "No Auth")String auth, @RequestBody Transactions transaction){
 
@@ -56,6 +56,39 @@ public class TransactionController {
 
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
 
+    }
+
+    @PutMapping("/transact/update/{transaction_id}")
+    public ResponseEntity updateTransaction(@RequestHeader(value="Authorization") String auth,
+                                            @PathVariable(value="transaction_id")String transaction_id,
+                                            @RequestBody Transactions transaction){
+
+        if(transaction_id == null){
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        if(transactionService.updateTransaction(auth,transaction_id,transaction) != null){
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(transactionService.updateTransaction(auth,transaction_id,transaction));
+        }
+
+        return new ResponseEntity((HttpStatus.UNAUTHORIZED));
+    }
+
+    @DeleteMapping("/transact/delete/{transaction_id}")
+    public ResponseEntity deleteTransaction(@RequestHeader(value="Authorization") String auth,
+                                            @PathVariable(value="transaction_id")String transaction_id){
+
+        if(transaction_id == null){
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        if(transactionService.deleteTransaction(auth,transaction_id)){
+            return new ResponseEntity(HttpStatus.NO_CONTENT);
+        }
+
+
+        return new ResponseEntity(HttpStatus.UNAUTHORIZED);
     }
 
 }
