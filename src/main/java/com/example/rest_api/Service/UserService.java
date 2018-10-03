@@ -6,6 +6,7 @@ import org.apache.tomcat.util.codec.binary.Base64;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.text.DateFormat;
@@ -25,46 +26,56 @@ public class UserService {
     @Autowired
     ValidationService validateService;
 
-    public Map<String,Object> authUser(String auth){
+    public ResponseEntity authUser(String auth){
 
         String []userCredentials = getUserCredentials(auth);
 
         if(userCredentials.length == 0){
-            return responseService.generateResponse(HttpStatus.UNAUTHORIZED, "You are not logged in");
+            return responseService.generateResponse(HttpStatus.UNAUTHORIZED
+                    ,"{\"Response\":\"You are not logged in\"}");
         }
 
         if(!validateService.validateUsername(userCredentials[0])){
-            return responseService.generateResponse(HttpStatus.BAD_GATEWAY,"Invalid Email Address");
+            return responseService.generateResponse(HttpStatus.BAD_GATEWAY
+                    ,"(\"Response\":\"Invalid username format\"}");
         }
 
         try {
             if(authUser(userCredentials)){
                 DateFormat df = new SimpleDateFormat("HH:mm");
                 Date date = new Date();
-                return responseService.generateResponse(HttpStatus.OK,"Current Time: "+df.format(date));
+                return responseService
+                        .generateResponse(HttpStatus.OK
+                                ,"{\"Date\":\""+df.format(date)+"\"}");
             }
         }catch(NoSuchElementException e){
-            return responseService.generateResponse(HttpStatus.UNAUTHORIZED,"No account found. Please register");
+            return responseService.generateResponse(HttpStatus.UNAUTHORIZED
+                            ,"{\"Response\":\"No account found. Please register\"}");
+
         }
 
-        return responseService.generateResponse(HttpStatus.UNAUTHORIZED,"No account found. Please register");
+        return responseService.generateResponse(HttpStatus.UNAUTHORIZED
+                ,"{\"Response\":\"No account found. Please register\"}");
     }
 
-    public Map<String,Object> createUser(String auth){
+    public ResponseEntity createUser(String auth){
         String []userCredentials = getUserCredentials(auth);
 
         if(userCredentials.length == 0){
-            return responseService.generateResponse(HttpStatus.UNAUTHORIZED, "Please enter username and password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("{\"Response\":\"Please enter username and password\"}");
         }
 
         if(!validateService.validateUsername(userCredentials[0])){
-            return responseService.generateResponse(HttpStatus.BAD_REQUEST,"Error:Invalid Email Address");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("{\"Response\":\"invalid email address format\"}");
         }
 
 
 
         if(authUser(userCredentials)){
-            return responseService.generateResponse(HttpStatus.BAD_REQUEST,"Account already exists");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("{\"Response\":\"Account already exists\"}");
         }else{
             try {
 
@@ -77,49 +88,14 @@ public class UserService {
 
                 userDao.save(user);
 
-                return responseService.generateResponse(HttpStatus.OK,"Account created successfully");
+                return ResponseEntity.status(HttpStatus.OK)
+                            .body("{\"Response\":\"Account created successfully\"}");
             }
             catch(Exception e){
                 System.out.print(e.getMessage());
-                return responseService.generateResponse(HttpStatus.FORBIDDEN,"Account creation failed");
+                return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                            .body("{\"Response\":\"Account could not be created\"}");
             }
-        }
-
-    }
-
-    public boolean updateUser(String []userCredentials){
-
-        String username = userCredentials[0];
-
-        String password = userCredentials[1];
-
-        try{
-
-            String hashedPassword = hash(password);
-            
-            User user = new User(username,password);
-            User existing_user = userDao.getOne(username);
-
-            existing_user.setPassword(hashedPassword);
-
-            return true;
-        }catch(Exception e){
-            return false;
-        }
-    }
-
-    public boolean deleteUser(String []userCredentials){
-
-        try{
-
-            String username = userCredentials[0];
-
-            userDao.deleteById(username);
-
-            return true;
-
-        }catch(Exception e){
-            return false;
         }
 
     }

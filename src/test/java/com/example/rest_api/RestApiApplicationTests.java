@@ -14,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.print.attribute.standard.Media;
 import javax.validation.constraints.AssertTrue;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
@@ -30,19 +31,17 @@ public class RestApiApplicationTests {
     TestRestTemplate testRest = new TestRestTemplate();
 
     @Test
-    public void testLoginSuccess() throws JSONException{
+    public void testLoginNoHeader() throws JSONException{
 
         HttpHeaders header = createHeaders("shr@gmail.com","abcd1234");
 
         HttpEntity<String> entity = new HttpEntity<String>(null,null);
 
         ResponseEntity<String> response = testRest.exchange(
-                            createUrlWithPort("/"),
+                            createUrlWithPort("/time"),
                             HttpMethod.GET,entity,String.class);
 
-        DateFormat df = new SimpleDateFormat("HH:mm");
-        Date date = new Date();
-        String expectedString = "{\"Data\":\"You are not logged in\",\"Response Code\":\"UNAUTHORIZED\"}";
+        String expectedString = "{\"Response\":\"You are not logged in\"}";
 
         JSONAssert.assertEquals(expectedString, response.getBody(),false);
 
@@ -55,10 +54,10 @@ public class RestApiApplicationTests {
         HttpEntity<String> entity = new HttpEntity<String>(null,header);
 
         ResponseEntity<String> response = testRest.exchange(
-                createUrlWithPort("/"),
+                createUrlWithPort("/time"),
                 HttpMethod.GET,entity,String.class);
 
-        String expectedString = "{\"Data\":\"No account found. Please register\",\"Response Code\":\"UNAUTHORIZED\"}";
+        String expectedString = "{\"Response\":\"No account found. Please register\"}";
 
         JSONAssert.assertEquals(expectedString, response.getBody(),false);
     }

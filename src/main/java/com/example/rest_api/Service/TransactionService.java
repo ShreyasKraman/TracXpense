@@ -4,13 +4,9 @@ import com.example.rest_api.Dao.TransactionsDao;
 import com.example.rest_api.Dao.UserDao;
 import com.example.rest_api.Entities.Transactions;
 import com.example.rest_api.Entities.User;
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
