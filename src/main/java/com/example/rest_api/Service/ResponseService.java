@@ -12,6 +12,10 @@ import java.util.Map;
 public class ResponseService {
 
     public ResponseEntity generateResponse(HttpStatus status, Object reason){
+
+        if(reason == null){
+            return new ResponseEntity(status);
+        }
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(reason);

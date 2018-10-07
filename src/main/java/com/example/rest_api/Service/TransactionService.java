@@ -4,9 +4,12 @@ import com.example.rest_api.Dao.TransactionsDao;
 import com.example.rest_api.Dao.UserDao;
 import com.example.rest_api.Entities.Transactions;
 import com.example.rest_api.Entities.User;
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,10 +93,9 @@ public class TransactionService {
     public Transactions updateTransaction(String auth, String id, Transactions updatedTransaction){
         String[] userCredentials = userService.getUserCredentials(auth);
         if(userService.authUser(userCredentials)){
-            if(ifTransactExists(id)){
-                Transactions existingTransaction = transactionDao.getOne(id);
-
+            Optional<User> optionalUser = userDao.findById(userCredentials[0]);
                 try{
+                    Transactions existingTransaction = ifTransactionAttachedToUser(optionalUser.get(),id);
                     existingTransaction.setAmount(updatedTransaction.getAmount());
                     existingTransaction.setCategory(updatedTransaction.getCategory());
                     existingTransaction.setDate(updatedTransaction.getDate());
@@ -110,7 +112,6 @@ public class TransactionService {
                     System.out.print(e.getMessage());
                     return null;
                 }
-            }
         }
 
         return null;
@@ -120,24 +121,23 @@ public class TransactionService {
 
         String[] userCredentials = userService.getUserCredentials(auth);
         if(userService.authUser(userCredentials)) {
-            if (ifTransactExists(id)) {
+            Optional<User> optionalUser = userDao.findById(userCredentials[0]);
 
-                Transactions existingTransaction = transactionDao.getOne(id);
+            try{
+                Transactions existingTransaction = ifTransactionAttachedToUser(optionalUser.get(),id);
 
-                try{
-
-                    transactionDao.delete(existingTransaction);
-
-                    User user = userDao.getOne(userCredentials[0]);
-                    user.deleteTransaction(existingTransaction);
-
-                    return true;
-
-                }catch (Exception e){
-                    System.out.print(e.getMessage());
+                if(existingTransaction == null){
                     return false;
                 }
+                transactionDao.delete(existingTransaction);
 
+                User user = userDao.getOne(userCredentials[0]);
+                user.deleteTransaction(existingTransaction);
+
+                return true;
+            }catch (Exception e){
+                System.out.print(e.getMessage());
+                return false;
             }
 
         }
@@ -159,6 +159,22 @@ public class TransactionService {
             return false;
         }
         return false;
+    }
+
+    public Transactions ifTransactionAttachedToUser(User user,String id){
+
+       List<Transactions> transactionsList = user.getTransactions();
+
+       Iterator it = transactionsList.iterator();
+
+       while(it.hasNext()){
+           Transactions transact = (Transactions)it.next();
+           if(id.equals(transact.getTransaction_id())){
+               return transact;
+           }
+       }
+
+        return null;
     }
 
 
