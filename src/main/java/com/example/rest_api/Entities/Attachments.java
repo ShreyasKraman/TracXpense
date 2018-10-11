@@ -6,6 +6,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import java.util.UUID;
 
 @Entity
 @Table
@@ -20,7 +21,7 @@ public class Attachments {
     private Transactions transactions;
 
     public Attachments(){
-
+        id = UUID.randomUUID().toString();
     }
 
     public Attachments(String id, String url, Transactions transactions){

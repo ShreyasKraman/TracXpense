@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 @Entity
@@ -110,6 +111,18 @@ public class Transactions {
         }
     }
 
+    public Attachments updateAttachments(Attachments updatedAttachment, String previousAttachmentId){
+        Iterator it = attachmentsList.iterator();
+        while(it.hasNext()){
+            Attachments attachments = (Attachments) it.next();
+            if(attachments.getId().equals(previousAttachmentId)){
+                attachments.setUrl(updatedAttachment.getUrl());
+                return attachments;
+            }
+        }
+        return null;
+    }
+
     public boolean deleteAttachment(Attachments deleteAttachment){
         try{
             attachmentsList.remove(deleteAttachment);
@@ -117,5 +130,18 @@ public class Transactions {
         }catch (Exception e){
             return false;
         }
+    }
+
+    public Attachments getPreviousAttachment(String previousAttachmentId){
+
+        Iterator it = attachmentsList.iterator();
+        while(it.hasNext()){
+            Attachments attachments = (Attachments) it.next();
+            if(attachments.getId().equals(previousAttachmentId)){
+                return attachments;
+            }
+        }
+
+        return null;
     }
 }

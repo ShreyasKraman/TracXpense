@@ -1,10 +1,7 @@
 package com.example.rest_api.Controller;
 
 import com.example.rest_api.Entities.Attachments;
-import com.example.rest_api.Service.AttachmentService;
-import com.example.rest_api.Service.ResponseService;
 import com.example.rest_api.Service.S3AttachmentService;
-import com.example.rest_api.Service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -14,23 +11,23 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@Profile("Local")
-public class AttachmentController {
+@Profile("Dev")
+public class S3AttachmentController {
 
     //For local attachments
     @Autowired
-    AttachmentService attachmentService;
+    S3AttachmentService s3AttachmentService;
     /*--------------------------------------- Services for local attachments -----------------------------*/
     @GetMapping("/transact/{transaction_id}/attachments")
     public ResponseEntity getAllAttachments(@RequestHeader(value="Authorization", defaultValue = "NoAuth")String Auth,
                                             @PathVariable(value = "transaction_id")String transactionId){
 
         if(!Auth.equals("NoAuth") && !transactionId.isEmpty()){
-            List<Attachments> attachmentsList = attachmentService.getAllAttachments(Auth,transactionId);
+            List<Attachments> attachmentsList = s3AttachmentService.getAllAttachments(Auth,transactionId);
 
-                if(attachmentsList != null)
-                    return ResponseEntity.status(HttpStatus.OK)
-                            .body(attachmentsList);
+            if(attachmentsList != null)
+                return ResponseEntity.status(HttpStatus.OK)
+                        .body(attachmentsList);
 
         }
 
@@ -43,7 +40,7 @@ public class AttachmentController {
                                         @RequestBody Attachments attachments){
 
         if(!auth.equals("NoAuth") && !transactionId.isEmpty()){
-           return attachmentService.addAttachment(auth,transactionId,attachments);
+            return s3AttachmentService.addAttachment(auth,transactionId,attachments);
         }
 
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
@@ -56,7 +53,7 @@ public class AttachmentController {
                                             @RequestBody Attachments attachment){
 
         if(!auth.equals("NoAuth") && !transactionId.isEmpty() && attachment != null && !attachmentId.isEmpty()){
-            return attachmentService.updateAttachment(auth,transactionId,attachment,attachmentId);
+            return s3AttachmentService.updateAttachment(auth,transactionId,attachment,attachmentId);
         }
 
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
@@ -68,13 +65,12 @@ public class AttachmentController {
                                            @PathVariable(value="attachment_id")String attachmentId){
 
         if(!auth.equals("NoAuth") && !transactionId.isEmpty() && !attachmentId.isEmpty()){
-            if(attachmentService.deleteAttachment(auth,transactionId,attachmentId)){
+            if(s3AttachmentService.deleteAttachment(auth,transactionId,attachmentId)){
                 return new ResponseEntity(HttpStatus.NO_CONTENT);
             }
         }
 
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
     }
-
 
 }
