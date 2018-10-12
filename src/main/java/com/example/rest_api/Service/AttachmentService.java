@@ -1,29 +1,24 @@
 package com.example.rest_api.Service;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+
 import com.example.rest_api.Dao.AttachmentDao;
 import com.example.rest_api.Dao.TransactionsDao;
 import com.example.rest_api.Dao.UserDao;
 import com.example.rest_api.Entities.Attachments;
 import com.example.rest_api.Entities.Transactions;
 import com.example.rest_api.Entities.User;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -50,13 +45,14 @@ public class AttachmentService {
     @Autowired
     ResponseService responseService;
 
+    private String resourcePath = "src\\main\\resources\\Cloud_Files\\";
+
     public List<Attachments> getAllAttachments(String auth, String transcation_id){
 
         String userCredentials[] = userService.getUserCredentials(auth);
 
         Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
         try {
-
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
                 if (transactionService.ifTransactionAttachedToUser(user, transcation_id) != null) {
@@ -89,14 +85,14 @@ public class AttachmentService {
                         return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
                                 "{\"Response\":\"Enter file with jpeg, jpg or png extension only\"}");
                     }
-                    String newPath = "./resources/Cloud_files/"+file.getName();
-                    File newFile = new File(newPath);
-                    if(!file.renameTo(newFile)){
-                        return null;
-                    }
+                    String newPath = resourcePath+file.getName();
 
+                    if(!file.renameTo(new File(newPath))){
+                        return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
+                                "{\"Response\":\"Cannot upload file to local repository\"}");
+                    }
                     Attachments attachments = new Attachments();
-                    attachments.setUrl(newFile.getPath());
+                    attachments.setUrl(newPath);
                     if (!attachments.getId().isEmpty()) {
                         transaction.addAttachment(attachments);
                         attachments.setTransactions(transaction);
@@ -112,32 +108,40 @@ public class AttachmentService {
     }
 
     public ResponseEntity updateAttachment(String auth, String transactionId,
-                                           Attachments attachment, String attachmentId){
+                                           Attachments newAttachment, String attachmentId){
         String userCredentials[] = userService.getUserCredentials(auth);
-
         Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
         try {
-
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
                 if (transactionService.ifTransactionAttachedToUser(user, transactionId) != null) {
                     Transactions transactions = transactionService.ifTransactionAttachedToUser(user, transactionId);
                     if (transactions != null) {
-                        if(transactions.updateAttachments(attachment,attachmentId) != null){
-                            Attachments attachments = transactions.updateAttachments(attachment,attachmentId);
-                            transactionsDao.save(transactions);
-                            attachmentDao.save(attachments);
-                            return ResponseEntity.status(HttpStatus.OK)
-                                    .body(attachments);
-                        }
+                            Attachments previousAttachments = transactions.getAttachment(attachmentId);
+                            if(previousAttachments != null){
+                                File newFile = new File(newAttachment.getUrl());
+                                String newPath = resourcePath + newFile.getName();
+                                if(!newFile.renameTo(new File(newPath))){
+                                    return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
+                                            "{\"Response\":\"Cannot upload file to local repository\"}");
+                                }
+                                File previousFile = new File(previousAttachments.getUrl());
+                                if(previousFile.exists()){
+                                    previousFile.delete();
+                                }
+                                newAttachment.setUrl(newPath);
+                                newAttachment.setId(previousAttachments.getId());
+                                transactionsDao.save(transactions);
+                                attachmentDao.save(newAttachment);
+                                return ResponseEntity.status(HttpStatus.OK)
+                                        .body(newAttachment);
+                            }
                     }
                 }
             }
         }catch(Exception e){
             System.out.println(e.getMessage());
         }
-
-
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
     }
 
@@ -146,7 +150,6 @@ public class AttachmentService {
 
         Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
         try {
-
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
                 if (transactionService.ifTransactionAttachedToUser(user, transactionId) != null) {
@@ -154,20 +157,24 @@ public class AttachmentService {
                     if(transactions!=null){
                         List<Attachments> attachmentList = transactions.getAttachmentsList();
                         Iterator it = attachmentList.iterator();
-                        while(it.hasNext()){
-                            Attachments attachments = (Attachments)it.next();
-                            if(attachments.getId().equals(attachmentId))
+                        while(it.hasNext()) {
+                            Attachments attachments = (Attachments) it.next();
+                            File fileToBeDeleted = null;
+                            if (attachments.getId().equals(attachmentId)) {
+                                fileToBeDeleted = new File(attachments.getUrl());
+                                if (fileToBeDeleted.exists()) {
+                                    fileToBeDeleted.delete();
+                                }
                                 attachmentDao.delete(attachments);
                                 return transactions.deleteAttachment(attachments);
+                            }
                         }
                     }
-
                 }
             }
         }catch(Exception e){
             System.out.println(e.getMessage());
         }
-
         return false;
     }
 

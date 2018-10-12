@@ -111,12 +111,11 @@ public class Transactions {
         }
     }
 
-    public Attachments updateAttachments(Attachments updatedAttachment, String previousAttachmentId){
+    public Attachments getAttachment(String previousAttachmentId){
         Iterator it = attachmentsList.iterator();
         while(it.hasNext()){
             Attachments attachments = (Attachments) it.next();
             if(attachments.getId().equals(previousAttachmentId)){
-                attachments.setUrl(updatedAttachment.getUrl());
                 return attachments;
             }
         }

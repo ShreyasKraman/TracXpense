@@ -130,10 +130,8 @@ public class TransactionService {
                     return false;
                 }
                 transactionDao.delete(existingTransaction);
-
                 User user = userDao.getOne(userCredentials[0]);
                 user.deleteTransaction(existingTransaction);
-
                 return true;
             }catch (Exception e){
                 System.out.print(e.getMessage());
