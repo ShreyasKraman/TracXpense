@@ -51,105 +51,102 @@ public class S3AttachmentService {
     //S3 Bucket name
     private String bucketName = "cyse6225-fall2018-kalyanramans.me.csye6225.com";
 
-    public List<Attachments> getAllAttachments(String auth, String transcation_id){
+    public List<Attachments> getAllAttachments(String auth, String transcation_id) {
 
         String userCredentials[] = userService.getUserCredentials(auth);
 
-        Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
+        Optional<User> optionalUser = userDao.findById(userCredentials[0]);
         try {
 
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
-                if (transactionService.ifTransactionAttachedToUser(user, transcation_id) != null) {
 
-                    Transactions transactions = transactionService.ifTransactionAttachedToUser(user,transcation_id);
+                Transactions transactions = transactionsDao.findTransactionAttachedToUser(transcation_id, user);
 
-                    return transactions.getAttachmentsList();
-                }
+                return transactions.getAttachmentsList();
             }
-        }catch(Exception e){}
+        } catch (Exception e) {
+        }
         return null;
 
     }
 
-    public ResponseEntity addAttachment(String auth, String transcation_id, Attachments attachment){
+    public ResponseEntity addAttachment(String auth, String transcation_id, Attachments attachment) {
         String userCredentials[] = userService.getUserCredentials(auth);
 
-        Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
+        Optional<User> optionalUser = userDao.findById(userCredentials[0]);
         try {
 
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
-                if (transactionService.ifTransactionAttachedToUser(user, transcation_id) != null) {
 
-                    Transactions transaction = transactionService.ifTransactionAttachedToUser(user, transcation_id);
+                Transactions transaction = transactionsDao.findTransactionAttachedToUser(transcation_id, user);
 
-                    File file = new File(attachment.getUrl());
-                    String extension = FilenameUtils.getExtension(file.getName());
+                File file = new File(attachment.getUrl());
+                String extension = FilenameUtils.getExtension(file.getName());
 
-                    if(!extension.equals("jpeg") && !extension.equals("jpg") && !extension.equals("png")){
-                        System.out.print(extension);
-                        return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
-                                "{\"Response\":\"Enter file with jpeg, jpg or png extension only\"}");
-                    }
+                if (!extension.equals("jpeg") && !extension.equals("jpg") && !extension.equals("png")) {
+                    System.out.print(extension);
+                    return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
+                            "{\"Response\":\"Enter file with jpeg, jpg or png extension only\"}");
+                }
 
-                    if(uploadToS3(attachment.getUrl()) == null){
-                        return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
-                                "{\"Response\":\"failed to upload to s3\"}");
-                    }
+                String newPath = uploadToS3(attachment.getUrl());
 
-                    String newPath = uploadToS3(attachment.getUrl());
-                    Attachments newAttachment = new Attachments();
-                    newAttachment.setUrl(newPath);
+                if (newPath == null) {
+                    return responseService.generateResponse(HttpStatus.UNAUTHORIZED,
+                            "{\"Response\":\"failed to upload to s3\"}");
+                }
 
-                    if (!newAttachment.getId().isEmpty() && !newAttachment.getUrl().isEmpty()) {
-                        transaction.addAttachment(newAttachment);
-                        newAttachment.setTransactions(transaction);
-                        attachmentDao.save(newAttachment);
-                        transactionsDao.save(transaction);
-                        return responseService.generateResponse(HttpStatus.OK,newAttachment);
-                    }
+                Attachments newAttachment = new Attachments();
+                newAttachment.setUrl(newPath);
+
+                if (!newAttachment.getId().isEmpty() && !newAttachment.getUrl().isEmpty()) {
+                    transaction.addAttachment(newAttachment);
+                    newAttachment.setTransactions(transaction);
+                    attachmentDao.save(newAttachment);
+                    transactionsDao.save(transaction);
+                    return responseService.generateResponse(HttpStatus.OK, newAttachment);
                 }
             }
-        }catch(Exception e){System.out.println(e.getMessage());}
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
 
-        return responseService.generateResponse(HttpStatus.UNAUTHORIZED,null);
+        return responseService.generateResponse(HttpStatus.UNAUTHORIZED, null);
     }
 
     public ResponseEntity updateAttachment(String auth, String transactionId,
-                                           Attachments attachment, String attachmentId){
+                                           Attachments attachment, String attachmentId) {
         String userCredentials[] = userService.getUserCredentials(auth);
 
-        Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
+        Optional<User> optionalUser = userDao.findById(userCredentials[0]);
         try {
 
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
-                if (transactionService.ifTransactionAttachedToUser(user, transactionId) != null) {
-                    Transactions transactions = transactionService.ifTransactionAttachedToUser(user, transactionId);
-                    if (transactions != null) {
+                Transactions transactions = transactionsDao.findTransactionAttachedToUser(transactionId, user);
 
-                        Attachments previousAttachment = transactions.getPreviousAttachment(attachmentId);
+                Attachments previousAttachment = attachmentDao.findAttachmentAttachedToTransaction(attachmentId, transactions);
 
-                        if(previousAttachment != null) {
-                            URL fileUrl = new URL(previousAttachment.getUrl());
+                if (previousAttachment != null) {
+                    URL fileUrl = new URL(previousAttachment.getUrl());
 
-                            String objectKeyName = FilenameUtils.getName(fileUrl.getPath());
+                    String objectKeyName = FilenameUtils.getName(fileUrl.getPath());
 
-                            if(updateInS3(attachment,objectKeyName) != null ){
-                                String updatedUrl = updateInS3(attachment,objectKeyName);
-                                attachment.setUrl(updatedUrl);
-                                attachmentDao.save(attachment);
-                                transactionsDao.save(transactions);
-                            }
-                        }
+                    String updatedUrl = updateInS3(attachment, objectKeyName);
+                    if (updatedUrl != null) {
+                        attachment.setUrl(updatedUrl);
+                        attachment.setId(previousAttachment.getId());
+                        attachmentDao.save(attachment);
+                        transactionsDao.save(transactions);
 
-
-
+                        return ResponseEntity.status(HttpStatus.OK)
+                                .body(attachment);
                     }
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
 
@@ -157,67 +154,58 @@ public class S3AttachmentService {
         return new ResponseEntity(HttpStatus.UNAUTHORIZED);
     }
 
-    public boolean deleteAttachment(String auth, String transactionId, String attachmentId){
+    public boolean deleteAttachment(String auth, String transactionId, String attachmentId) {
         String userCredentials[] = userService.getUserCredentials(auth);
 
-        Optional<User> optionalUser =  userDao.findById(userCredentials[0]);
+        Optional<User> optionalUser = userDao.findById(userCredentials[0]);
         try {
 
             User user = optionalUser.get();
             if (userService.authUser(userCredentials)) {
-                if (transactionService.ifTransactionAttachedToUser(user, transactionId) != null) {
-                    Transactions transactions = transactionService.ifTransactionAttachedToUser(user,transactionId);
-                    if(transactions!=null){
-                        List<Attachments> attachmentList = transactions.getAttachmentsList();
-                        Iterator it = attachmentList.iterator();
-                        URL existingURL = null;
-                        while(it.hasNext()){
-                            Attachments attachments = (Attachments)it.next();
-                            if(attachments.getId().equals(attachmentId))
-                                existingURL = new URL(attachments.getUrl());
-                                String objectKeyName = FilenameUtils.getName(existingURL.getPath());
-                                if(objectKeyName != null) {
-                                    if(!deleteInS3(objectKeyName)){
-                                        break;
-                                    }
-                                    attachmentDao.delete(attachments);
-                                }else{
-                                    break;
-                                }
-                            return transactions.deleteAttachment(attachments);
+
+                Transactions transactions = transactionsDao.findTransactionAttachedToUser(transactionId, user);
+                if (transactions != null) {
+                    Attachments attachments = attachmentDao.findAttachmentAttachedToTransaction(attachmentId, transactions);
+                    URL existingURL = null;
+
+                    if (attachments.getId().equals(attachmentId))
+                        existingURL = new URL(attachments.getUrl());
+                        String objectKeyName = FilenameUtils.getName(existingURL.getPath());
+                    if (objectKeyName != null) {
+                        if (deleteInS3(objectKeyName)) {
+                            attachmentDao.delete(attachments);
                         }
                     }
-
+                    return transactions.deleteAttachment(attachments);
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
         return false;
     }
 
 
-    public boolean ifAttachmentExists(String id){
-        Optional<Attachments> optionalAttachments = attachmentDao.findById(id);
-        try{
-            Attachments attachments = optionalAttachments.get();
-            if(attachments != null){
-                return true;
-            }
-        }catch (Exception e){
-            return false;
-        }
-        return false;
-    }
+//    public boolean ifAttachmentExists(String id) {
+//        Optional<Attachments> optionalAttachments = attachmentDao.findById(id);
+//        try {
+//            Attachments attachments = optionalAttachments.get();
+//            if (attachments != null) {
+//                return true;
+//            }
+//        } catch (Exception e) {
+//            return false;
+//        }
+//        return false;
+//    }
 
-    public String uploadToS3(String fileUrl){
+    public String uploadToS3(String fileUrl) {
 
         String fileObjectKeyName = FilenameUtils.getName(fileUrl);
 
         String fileName = fileUrl;
 
-        try{
+        try {
 
             AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
                     .withRegion(clientRegion)
@@ -226,35 +214,32 @@ public class S3AttachmentService {
 
             PutObjectRequest request = new PutObjectRequest(bucketName, fileObjectKeyName, new File(fileName));
             ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentType("image/"+FilenameUtils.getExtension(fileUrl));
+            metadata.setContentType("image/" + FilenameUtils.getExtension(fileUrl));
             metadata.addUserMetadata("x-amz-meta-title", "Your Profile Pic");
             request.setMetadata(metadata);
             s3Client.putObject(request);
 
             //Get url
-
-            String bucketUrl = " https://s3.amazonaws.com/"+bucketName+"/"+fileObjectKeyName;
+            String bucketUrl = " https://s3.amazonaws.com/" + bucketName + "/" + fileObjectKeyName;
 
             return bucketUrl;
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
 
         return null;
     }
 
-    public String updateInS3(Attachments attachments,String objectKeyName){
+    public String updateInS3(Attachments attachments, String oldObjectKeyName) {
 
-        if(deleteInS3(objectKeyName)){
-            if(uploadToS3(attachments.getUrl())!=null){
-                return uploadToS3(attachments.getUrl());
-            }
+        if (deleteInS3(oldObjectKeyName)) {
+            return uploadToS3(attachments.getUrl());
         }
 
         return null;
     }
 
-    public boolean deleteInS3(String objectKeyName){
+    public boolean deleteInS3(String objectKeyName) {
 
         try {
 
@@ -263,9 +248,9 @@ public class S3AttachmentService {
                     .withCredentials(new DefaultAWSCredentialsProviderChain())
                     .build();
 
-            s3Client.deleteObject(new DeleteObjectRequest(bucketName,objectKeyName));
+            s3Client.deleteObject(new DeleteObjectRequest(bucketName, objectKeyName));
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println("failed to delete");
         }
 

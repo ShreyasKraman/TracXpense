@@ -6,6 +6,7 @@ import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table
@@ -111,16 +112,16 @@ public class Transactions {
         }
     }
 
-    public Attachments getAttachment(String previousAttachmentId){
-        Iterator it = attachmentsList.iterator();
-        while(it.hasNext()){
-            Attachments attachments = (Attachments) it.next();
-            if(attachments.getId().equals(previousAttachmentId)){
-                return attachments;
-            }
-        }
-        return null;
-    }
+//    public Attachments getAttachment(String previousAttachmentId){
+//        Iterator it = attachmentsList.iterator();
+//        while(it.hasNext()){
+//            Attachments attachments = (Attachments) it.next();
+//            if(attachments.getId().equals(previousAttachmentId)){
+//                return attachments;
+//            }
+//        }
+//        return null;
+//    }
 
     public boolean deleteAttachment(Attachments deleteAttachment){
         try{
@@ -131,16 +132,16 @@ public class Transactions {
         }
     }
 
-    public Attachments getPreviousAttachment(String previousAttachmentId){
-
-        Iterator it = attachmentsList.iterator();
-        while(it.hasNext()){
-            Attachments attachments = (Attachments) it.next();
-            if(attachments.getId().equals(previousAttachmentId)){
-                return attachments;
-            }
-        }
-
-        return null;
-    }
+//    public Attachments getPreviousAttachment(String previousAttachmentId){
+//
+//        Iterator it = attachmentsList.iterator();
+//        while(it.hasNext()){
+//            Attachments attachments = (Attachments) it.next();
+//            if(attachments.getId().equals(previousAttachmentId)){
+//                return attachments;
+//            }
+//        }
+//
+//        return null;
+//    }
 }

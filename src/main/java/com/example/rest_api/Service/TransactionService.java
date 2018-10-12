@@ -12,6 +12,7 @@ import javax.swing.text.html.Option;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class TransactionService {
@@ -60,14 +61,8 @@ public class TransactionService {
                 String id = transaction.getCategory() + transaction.getMerchant();
 
                 while(true) {
-                    String hashedId = userService.hash(id);
+                    String hashedId = UUID.randomUUID().toString();
                     if(!ifTransactExists(hashedId)) {
-                        if(hashedId.contains("/")){
-                            hashedId = hashedId.replace("/","-");
-                        }
-                        if(hashedId.contains(".")){
-                            hashedId = hashedId.replace(".","-");
-                        }
                         transaction.setTransaction_id(hashedId);
                         break;
                     }
@@ -95,14 +90,15 @@ public class TransactionService {
         if(userService.authUser(userCredentials)){
             Optional<User> optionalUser = userDao.findById(userCredentials[0]);
                 try{
-                    Transactions existingTransaction = ifTransactionAttachedToUser(optionalUser.get(),id);
+                    Transactions existingTransaction = transactionDao.findTransactionAttachedToUser(id,optionalUser.get());
+
                     existingTransaction.setAmount(updatedTransaction.getAmount());
                     existingTransaction.setCategory(updatedTransaction.getCategory());
                     existingTransaction.setDate(updatedTransaction.getDate());
                     existingTransaction.setDescription(updatedTransaction.getDescription());
                     existingTransaction.setMerchant(updatedTransaction.getMerchant());
-                    transactionDao.save(existingTransaction);
 
+                    transactionDao.save(existingTransaction);
                     User user = userDao.getOne(userCredentials[0]);
                     user.updateTransaction(id,updatedTransaction);
                     userDao.save(user);
@@ -124,11 +120,8 @@ public class TransactionService {
             Optional<User> optionalUser = userDao.findById(userCredentials[0]);
 
             try{
-                Transactions existingTransaction = ifTransactionAttachedToUser(optionalUser.get(),id);
+                Transactions existingTransaction = transactionDao.findTransactionAttachedToUser(id,optionalUser.get());
 
-                if(existingTransaction == null){
-                    return false;
-                }
                 transactionDao.delete(existingTransaction);
                 User user = userDao.getOne(userCredentials[0]);
                 user.deleteTransaction(existingTransaction);
@@ -159,21 +152,21 @@ public class TransactionService {
         return false;
     }
 
-    public Transactions ifTransactionAttachedToUser(User user,String id){
-
-       List<Transactions> transactionsList = user.getTransactions();
-
-       Iterator it = transactionsList.iterator();
-
-       while(it.hasNext()){
-           Transactions transact = (Transactions)it.next();
-           if(id.equals(transact.getTransaction_id())){
-               return transact;
-           }
-       }
-
-        return null;
-    }
+//    public Transactions ifTransactionAttachedToUser(User user,String id){
+//
+//       List<Transactions> transactionsList = user.getTransactions();
+//
+//       Iterator it = transactionsList.iterator();
+//
+//       while(it.hasNext()){
+//           Transactions transact = (Transactions)it.next();
+//           if(id.equals(transact.getTransaction_id())){
+//               return transact;
+//           }
+//       }
+//
+//        return null;
+//    }
 
 
 }
