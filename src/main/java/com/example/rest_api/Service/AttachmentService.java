@@ -134,10 +134,10 @@ public class AttachmentService {
                         if (previousFile.exists()) {
                             previousFile.delete();
                         }
-                        newAttachment.setUrl(newPath);
-                        newAttachment.setId(previousAttachments.getId());
+
+                        previousAttachments.setUrl(newPath);
                         transactionsDao.save(transactions);
-                        attachmentDao.save(newAttachment);
+                        attachmentDao.save(previousAttachments);
                         return ResponseEntity.status(HttpStatus.OK)
                                 .body(newAttachment);
                     }

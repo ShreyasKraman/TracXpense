@@ -136,9 +136,8 @@ public class S3AttachmentService {
 
                     String updatedUrl = updateInS3(attachment, objectKeyName);
                     if (updatedUrl != null) {
-                        attachment.setUrl(updatedUrl);
-                        attachment.setId(previousAttachment.getId());
-                        attachmentDao.save(attachment);
+                        previousAttachment.setUrl(updatedUrl);
+                        attachmentDao.save(previousAttachment);
                         transactionsDao.save(transactions);
 
                         return ResponseEntity.status(HttpStatus.OK)
